@@ -4,5 +4,9 @@ lint:
 	npx eslint .
 test:
 	npm test
-test-coverage:
-	npm test -- --coverage --coverageProvider=v8
+s:
+	npx webpack serve
+remove:
+	rm -rf dist
+pack:
+	NODE_ENV=production npx webpack
