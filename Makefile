@@ -4,9 +4,9 @@ lint:
 	npx eslint .
 test:
 	npm test
-s:
+server:
 	npx webpack serve
 remove:
 	rm -rf dist
-pack:
+build:
 	NODE_ENV=production npx webpack
