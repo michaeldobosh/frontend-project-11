@@ -24,6 +24,6 @@ const elements = {
   form: document.querySelector('form'),
 };
 
-const watchedState = onChange(state, (path) => render(watchedState, elements.form));
+const watchedState = onChange(state, (path) => render(watchedState, elements.form, path));
 
 export { elements, watchedState };
