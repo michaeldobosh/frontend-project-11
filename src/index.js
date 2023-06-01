@@ -3,16 +3,30 @@ import './style.css';
 import * as yup from 'yup';
 // import _ from 'lodash';
 import keyBy from 'lodash/keyBy.js';
-// import axios from 'axios';
+import axios from 'axios';
+import i18next from 'i18next';
 import { elements, watchedState } from './view.js';
+import resources from './resources.js';
 
-const chekDuplicate = (value) => watchedState.dataForm.feeds.includes(value);
+const parsing = (rss) => {
+  const parser = new DOMParser();
+  return parser.parseFromString(rss, 'application/xml');
+};
+
+const instance = i18next.createInstance();
+
+instance.init({
+  lng: 'ru',
+  resources,
+});
+
+const chekDuplicate = (value) => watchedState.dataForm.feeds.every(({ url }) => url !== value);
 
 const userSchema = yup.object({
-  currentUrl: yup.string().url('Ссылка должна быть валидным URL')
-    .test('isDuplicate', 'RSS уже существует', async (value) => {
+  currentUrl: yup.string().url(instance.t('invalidUrl'))
+    .test('isDuplicate', instance.t('haveThisRss'), async (value) => {
       const isDuplicate = await chekDuplicate(value);
-      return !isDuplicate;
+      return isDuplicate;
     }),
 });
 
@@ -30,15 +44,34 @@ elements.form.addEventListener('submit', (evt) => {
   const [input] = elements.form.elements;
   watchedState.dataForm.currentUrl = input.value;
 
-  const promise = validate(watchedState.dataForm);
-  promise.then((dataOfValidate) => {
+  const resultValidate = validate(watchedState.dataForm);
+  resultValidate.then((dataOfValidate) => {
     const [error] = Object.values(dataOfValidate);
     if (error) {
-      console.log(error.message);
-      watchedState.error = error.message;
+      console.log(dataOfValidate);
+      watchedState.feedback = error.message;
+      watchedState.status = 1;
     } else {
-      watchedState.dataForm.feeds.push(watchedState.dataForm.currentUrl);
-      watchedState.error = null;
+      axios.get(`https://allorigins.hexlet.app/get?disableCache=true&url=${encodeURIComponent(watchedState.dataForm.currentUrl)}`)
+        .then((response) => {
+          const data = parsing(response.data.contents);
+          const titleFeed = data.querySelector('title').textContent;
+          const descriptionFeed = data.querySelector('description').textContent;
+          data.querySelectorAll('item').forEach((item) => {
+            watchedState.dataForm.posts.push({
+              url: item.children[2].textContent,
+              title: item.firstElementChild.textContent,
+              description: item.children[3].textContent,
+            });
+          });
+          watchedState.dataForm.feeds.push({
+            url: watchedState.dataForm.currentUrl,
+            title: titleFeed,
+            description: descriptionFeed,
+          });
+          watchedState.feedback = instance.t('succes');
+          watchedState.status = response.status;
+        });
     }
   });
 
