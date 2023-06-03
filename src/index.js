@@ -6,17 +6,13 @@ import keyBy from 'lodash/keyBy.js';
 import axios from 'axios';
 import i18next from 'i18next';
 import { elements, watchedState } from './view.js';
+import { parsing, setIntervalCheck } from './utils.js';
 import resources from './resources.js';
 
-const parsing = (rss) => {
-  const parser = new DOMParser();
-  return parser.parseFromString(rss, 'application/xml');
-};
-
 const instance = i18next.createInstance();
-
+const defaultLang = 'ru';
 instance.init({
-  lng: 'ru',
+  lng: defaultLang,
   resources,
 });
 
@@ -41,41 +37,49 @@ const validate = async (value) => {
 
 elements.form.addEventListener('submit', (evt) => {
   evt.preventDefault();
-  const [input] = elements.form.elements;
+  const [input, button] = elements.form.elements;
   watchedState.dataForm.currentUrl = input.value;
 
   const resultValidate = validate(watchedState.dataForm);
   resultValidate.then((dataOfValidate) => {
     const [error] = Object.values(dataOfValidate);
     if (error) {
-      console.log(dataOfValidate);
       watchedState.feedback = error.message;
-      watchedState.status = 1;
-    } else {
-      axios.get(`https://allorigins.hexlet.app/get?disableCache=true&url=${encodeURIComponent(watchedState.dataForm.currentUrl)}`)
-        .then((response) => {
-          const data = parsing(response.data.contents);
-          const titleFeed = data.querySelector('title').textContent;
-          const descriptionFeed = data.querySelector('description').textContent;
-          data.querySelectorAll('item').forEach((item) => {
-            watchedState.dataForm.posts.push({
-              url: item.children[2].textContent,
-              title: item.firstElementChild.textContent,
-              description: item.children[3].textContent,
-            });
-          });
-          watchedState.dataForm.feeds.push({
-            url: watchedState.dataForm.currentUrl,
-            title: titleFeed,
-            description: descriptionFeed,
-          });
-          watchedState.feedback = instance.t('succes');
-          watchedState.status = response.status;
-        });
+      watchedState.status = 0;
+      return;
     }
+    button.disabled = true;
+    axios
+      .get(`https://allorigins.hexlet.app/get?disableCache=true&url=${encodeURIComponent(watchedState.dataForm.currentUrl)}`)
+      .then((response) => {
+        elements.form.reset();
+        input.focus();
+        const rssData = parsing(response.data.contents);
+        const titleFeed = rssData.querySelector('title').textContent;
+        const descriptionFeed = rssData.querySelector('description').textContent;
+        watchedState.dataForm.feeds.push({
+          url: watchedState.dataForm.currentUrl,
+          title: titleFeed,
+          description: descriptionFeed,
+        });
+        rssData.querySelectorAll('item').forEach((post) => {
+          watchedState.dataForm.posts.push({
+            url: post.querySelector('link').textContent,
+            title: post.querySelector('title').textContent,
+            description: post.querySelector('description').textContent,
+            viewed: false,
+            modal: false,
+          });
+        });
+        watchedState.feedback = instance.t('succes');
+        watchedState.status = response.status;
+        button.disabled = false;
+        setIntervalCheck(watchedState);
+      })
+      .catch(() => {
+        watchedState.status = 0;
+        watchedState.feedback = instance.t('failure');
+        button.disabled = false;
+      });
   });
-
-  console.log(watchedState);
-  elements.form.reset();
-  input.focus();
 });
