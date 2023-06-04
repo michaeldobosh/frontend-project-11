@@ -100,7 +100,7 @@ const render = (state, form) => {
       }
     });
     dataForm.feeds.forEach(({ title, description }) => elements.makeFeed(title, description));
-  } else if (status === 0) {
+  } else if (status === 'error') {
     errorElement.classList.add('text-danger');
     input.classList.add('is-invalid');
     errorElement.textContent = feedback;
