@@ -2,8 +2,6 @@ install:
 	npm ci
 lint:
 	npx eslint .
-test:
-	npm test
 server:
 	npx webpack serve
 remove:
