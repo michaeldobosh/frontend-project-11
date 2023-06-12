@@ -16,8 +16,8 @@ const parser = new DOMParser();
 const [input, button] = elements.form.elements;
 
 const request = (url) => {
-  const proxyUrl = new URL(`/get?disableCache=true&url=
-    ${encodeURIComponent(url)}`, 'https://allorigins.hexlet.app');
+  const proxyUrl = new URL(`https://allorigins.hexlet.app/get?disableCache=true&url=
+    ${encodeURIComponent(url)}`);
   return axios.get(proxyUrl);
 };
 
