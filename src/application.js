@@ -33,9 +33,11 @@ const validate = async (value) => {
 };
 
 export default () => {
+  const [input, button] = elements.form.elements;
+  input.focus();
   elements.form.addEventListener('submit', (evt) => {
     evt.preventDefault();
-    const [input, button] = elements.form.elements;
+
     watchedState.currentUrl = input.value;
     button.disabled = true;
     watchedState.status = 'request';

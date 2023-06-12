@@ -16,7 +16,7 @@ const parser = new DOMParser();
 const [input, button] = elements.form.elements;
 
 const request = (url) => {
-  const proxyUrl = new URL('https://allorigins.hexlet.app/get?disableCache=true&url=');
+  const proxyUrl = new URL('https://allorigins.hexlet.app/get');
   proxyUrl.searchParams.set('disableCache', true);
   proxyUrl.searchParams.set('url', url);
   return axios.get(proxyUrl.toString());
@@ -59,10 +59,7 @@ const parse = (data, state) => Promise.resolve(data)
 
 const loadeData = (state) => {
   const urls = state.loadedData.feeds.map(({ url }) => url);
-  console.log(state.status);
-  if (state.isValid) {
-    urls.push(state.currentUrl);
-  }
+  if (state.isValid) urls.push(state.currentUrl);
   Promise.all(_.union(urls).map((url) => request(url)))
     .then((responses) => parse(responses, state))
     .then(({ feeds, posts }) => {
@@ -78,8 +75,7 @@ const loadeData = (state) => {
     })
     .then(() => {
       state.status = 'update';
-      const update = () => setTimeout(() => loadeData(state), 5000);
-      return update();
+      return setTimeout(() => loadeData(state), 5000);
     })
     .catch((error) => {
       if (error.message === 'Network Error') {
