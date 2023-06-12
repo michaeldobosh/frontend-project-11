@@ -16,9 +16,10 @@ const parser = new DOMParser();
 const [input, button] = elements.form.elements;
 
 const request = (url) => {
-  const proxyUrl = new URL(`https://allorigins.hexlet.app/get?disableCache=true&url=
-    ${encodeURIComponent(url)}`);
-  return axios.get(String(proxyUrl));
+  const proxyUrl = new URL('https://allorigins.hexlet.app/get?disableCache=true&url=');
+  proxyUrl.searchParams.set('disableCache', true);
+  proxyUrl.searchParams.set('url', url);
+  return axios.get(proxyUrl.toString());
 };
 
 const parse = (data, state) => Promise.resolve(data)
