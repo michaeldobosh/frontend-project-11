@@ -38,12 +38,18 @@ export default () => {
     const [input, button] = elements.form.elements;
     watchedState.currentUrl = input.value;
     button.disabled = true;
+    watchedState.status = 'request';
 
     const resultValidate = validate(watchedState);
     resultValidate
       .then((dataOfValidate) => {
         const [error] = Object.values(dataOfValidate);
-        if (error) throw new Error(error.message);
+        if (error) {
+          watchedState.isValid = false;
+          throw new Error(error.message);
+        } else {
+          watchedState.isValid = true;
+        }
       })
       .then(() => loadeData(watchedState))
       .catch((error) => {

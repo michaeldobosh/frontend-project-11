@@ -18,14 +18,13 @@ const [input, button] = elements.form.elements;
 const request = (url) => {
   const proxyUrl = new URL(`https://allorigins.hexlet.app/get?disableCache=true&url=
     ${encodeURIComponent(url)}`);
-  return axios.get(proxyUrl);
+  return axios.get(String(proxyUrl));
 };
 
 const parse = (data, state) => Promise.resolve(data)
   .then((responses) => responses.map((response) => parser
     .parseFromString(response.data.contents, 'application/xml')))
   .then((loadedData) => loadedData.reduce((acc, rssData) => {
-    console.log(loadedData);
     const currentTitleFeeds = state.loadedData.feeds.map(({ title }) => title);
     const currentTitlePosts = state.loadedData.posts.map(({ title }) => title);
 
@@ -58,23 +57,29 @@ const parse = (data, state) => Promise.resolve(data)
   });
 
 const loadeData = (state) => {
-  const urls = state.loadedData.feeds.map(({ url }) => url)
-    .concat(state.currentUrl);
-
+  const urls = state.loadedData.feeds.map(({ url }) => url);
+  console.log(state.status);
+  if (state.isValid) {
+    urls.push(state.currentUrl);
+  }
   Promise.all(_.union(urls).map((url) => request(url)))
     .then((responses) => parse(responses, state))
     .then(({ feeds, posts }) => {
       state.loadedData.feeds.unshift(...feeds);
       state.loadedData.posts.unshift(...posts);
+      if (state.status === 'request') {
+        elements.form.reset();
+        input.focus();
+        button.disabled = false;
+        state.feedback = instance.t('succes');
+        state.status = 200;
+      }
     })
     .then(() => {
-      button.disabled = false;
-      elements.form.reset();
-      input.focus();
-      state.status = 200;
-      state.feedback = instance.t('succes');
+      state.status = 'update';
+      const update = () => setTimeout(() => loadeData(state), 5000);
+      return update();
     })
-    .then(() => setTimeout(() => loadeData(state), 5000))
     .catch((error) => {
       if (error.message === 'Network Error') {
         state.feedback = instance.t('error_240');

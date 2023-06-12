@@ -104,6 +104,7 @@ const render = (state) => {
 
 const state = {
   currentUrl: '',
+  isValid: null,
   loadedData: {
     feeds: [],
     posts: [],
