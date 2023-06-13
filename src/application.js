@@ -1,17 +1,9 @@
 import * as yup from 'yup';
 import keyBy from 'lodash/keyBy.js';
-import i18next from 'i18next';
 import { elements, watchedState } from './view.js';
-import resources from './locales/index.js';
-import loadeData from './utils.js';
+import { loadeData, runApp } from './handler.js';
 
-const instance = i18next.createInstance();
-const defaultLang = 'ru';
-instance.init({
-  lng: defaultLang,
-  debug: false,
-  resources,
-});
+const instance = await runApp();
 
 const chekDuplicate = (value) => watchedState.loadedData.feeds.every(({ url }) => url !== value);
 
@@ -34,7 +26,6 @@ const validate = async (value) => {
 
 export default () => {
   const [input, button] = elements.form.elements;
-  input.focus();
   elements.form.addEventListener('submit', (evt) => {
     evt.preventDefault();
 
@@ -58,6 +49,7 @@ export default () => {
         watchedState.feedback = instance.t(`${error.message}`);
         watchedState.status = 'error';
         button.disabled = false;
+        input.focus();
       });
   });
 };

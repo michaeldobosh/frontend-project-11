@@ -24,13 +24,6 @@
     "url": "https://github.com/michaeldobosh/frontend-project-11/issues"
   },
   "homepage": "https://github.com/michaeldobosh/frontend-project-11#readme",
-  "jest": {
-    "verbose": true,
-    "testEnvironmentOptions": {
-      "url": "http://localhost/"
-    },
-    "testEnvironment": "jsdom"
-  },
   "devDependencies": {
     "@babel/core": "^7.22.1",
     "@babel/preset-env": "^7.22.2",
