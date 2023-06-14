@@ -1,27 +1,11 @@
 import axios from 'axios';
-import i18next from 'i18next';
 import _ from 'lodash';
-import resources from './locales/index.js';
 import { elements } from './view.js';
 import { parser, fetchProxyUrl } from './utils.js';
 
-const runApp = async () => {
-  const instance = i18next.createInstance();
-  const defaultLang = 'ru';
-  await instance.init({
-    lng: defaultLang,
-    debug: false,
-    resources,
-  });
-
-  return instance;
-};
-
-const instance = await runApp();
-
 const [input, button] = elements.form.elements;
 
-const parse = (data, state) => Promise.resolve(data)
+const parse = (data, state, instance) => Promise.resolve(data)
   .then((responses) => responses.map((response) => parser
     .parseFromString(response.data.contents, 'application/xml')))
   .then((loadedData) => loadedData.reduce((acc, rssData) => {
@@ -72,11 +56,11 @@ const parse = (data, state) => Promise.resolve(data)
     }
   });
 
-const loadeData = (state) => {
+const loadeData = (state, instance) => {
   const urls = state.loadedData.feeds.map(({ url }) => url);
   if (state.isValid) urls.push(state.currentUrl);
   Promise.all(_.union(urls).map((url) => axios.get(fetchProxyUrl(url))))
-    .then((responses) => parse(responses, state))
+    .then((responses) => parse(responses, state, instance))
     .then(({ feeds, posts }) => {
       feeds.forEach((feed) => {
         feed.feedId = _.uniqueId();
@@ -110,4 +94,4 @@ const loadeData = (state) => {
     });
 };
 
-export { loadeData, runApp };
+export default loadeData;

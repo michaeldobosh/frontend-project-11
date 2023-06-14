@@ -1,13 +1,13 @@
 import * as yup from 'yup';
 import keyBy from 'lodash/keyBy.js';
+import i18next from 'i18next';
+import resources from './locales/index.js';
 import { elements, watchedState } from './view.js';
-import { loadeData, runApp } from './handler.js';
-
-const instance = await runApp();
+import loadeData from './handler.js';
 
 const chekDuplicate = (value) => watchedState.loadedData.feeds.every(({ url }) => url !== value);
 
-const userSchema = yup.object({
+const searchRss = yup.object({
   currentUrl: yup.string().required('error_210').url('error_220')
     .test('isDuplicate', 'error_230', async (value) => {
       const isDuplicate = await chekDuplicate(value);
@@ -17,14 +17,22 @@ const userSchema = yup.object({
 
 const validate = async (value) => {
   try {
-    await userSchema.validate(value, { abortEarly: false });
+    await searchRss.validate(value, { abortEarly: false });
     return {};
   } catch (e) {
     return keyBy(e.inner, 'path');
   }
 };
 
-export default () => {
+export default async () => {
+  const defaultLang = 'ru';
+  const instance = i18next.createInstance();
+  await instance.init({
+    lng: defaultLang,
+    debug: false,
+    resources,
+  });
+
   const [input, button] = elements.form.elements;
   elements.form.addEventListener('submit', (evt) => {
     evt.preventDefault();
@@ -44,7 +52,7 @@ export default () => {
           watchedState.isValid = true;
         }
       })
-      .then(() => loadeData(watchedState))
+      .then(() => loadeData(watchedState, instance))
       .catch((error) => {
         watchedState.feedback = instance.t(`${error.message}`);
         watchedState.status = 'error';
