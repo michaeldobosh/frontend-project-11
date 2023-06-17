@@ -1,10 +1,11 @@
 export default {
   translation: {
-    succes: 'RSS успешно загружен',
-    error_210: 'Не должно быть пустым',
-    error_220: 'Ссылка должна быть валидным URL',
-    error_230: 'RSS уже существует',
-    error_240: 'Ошибка сети',
-    error_250: 'Ресурс не содержит валидный RSS',
+    success: 'RSS успешно загружен',
+    empty_field: 'Не должно быть пустым',
+    link_is_not_valid: 'Ссылка должна быть валидным URL',
+    rss_already_exists: 'RSS уже существует',
+    network_error: 'Ошибка сети',
+    resource_does_not_contain_valid_rss: 'Ресурс не содержит валидный RSS',
+    view: 'Просмотр',
   },
 };

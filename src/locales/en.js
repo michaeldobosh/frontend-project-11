@@ -1,10 +1,11 @@
 export default {
   translation: {
-    succes: 'RSS has been loaded',
-    error_210: 'Must not be empty',
-    error_220: 'Link must be a valid URL',
-    error_230: 'RSS already exists',
-    error_240: 'Network error',
-    error_250: 'The resource does not contain valid RSS',
+    success: 'RSS has been loaded',
+    empty_field: 'Must not be empty',
+    link_is_not_valid: 'Link must be a valid URL',
+    rss_already_exists: 'RSS already exists',
+    network_error: 'Network error',
+    resource_does_not_contain_valid_rss: 'The resource does not contain valid RSS',
+    view: 'view',
   },
 };

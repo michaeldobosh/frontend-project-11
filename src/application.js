@@ -1,26 +1,26 @@
 import * as yup from 'yup';
-import keyBy from 'lodash/keyBy.js';
 import i18next from 'i18next';
+import onChange from 'on-change';
 import resources from './locales/index.js';
-import { elements, watchedState } from './view.js';
-import loadeData from './handler.js';
+import render from './view.js';
+import { isUniq } from './utils.js';
+import downloadData from './handler.js';
 
-const chekDuplicate = (value) => watchedState.loadedData.feeds.every(({ url }) => url !== value);
+const linkValidationCheck = yup.string()
+  .required('empty_field').url('link_is_not_valid');
+const checkForDuplicateLinks = yup.array()
+  .test('isUniqUrls', 'rss_already_exists', (urls) => isUniq(urls));
 
-const searchRss = yup.object({
-  currentUrl: yup.string().required('error_210').url('error_220')
-    .test('isDuplicate', 'error_230', async (value) => {
-      const isDuplicate = await chekDuplicate(value);
-      return isDuplicate;
-    }),
-});
+const validate = async (state, currentUrl) => {
+  const urls = state.loadedData.feeds.map(({ url }) => url);
+  urls.push(currentUrl);
 
-const validate = async (value) => {
   try {
-    await searchRss.validate(value, { abortEarly: false });
-    return {};
-  } catch (e) {
-    return keyBy(e.inner, 'path');
+    await linkValidationCheck.validate(currentUrl, { abortEarly: false });
+    await checkForDuplicateLinks.validate(urls, { abortEarly: false });
+    return null;
+  } catch (error) {
+    return error.message;
   }
 };
 
@@ -33,31 +33,55 @@ export default async () => {
     resources,
   });
 
-  const [input, button] = elements.form.elements;
-  elements.form.addEventListener('submit', (evt) => {
+  const state = {
+    validation: false,
+    loadedData: {
+      feeds: [],
+      posts: [],
+    },
+    feedback: '',
+    status: 'filling',
+    modal: false,
+    viewedPosts: [],
+  };
+
+  const form = document.querySelector('form');
+  const watchedState = onChange(state, (path) => render(watchedState, instance, path));
+
+  form.addEventListener('submit', (evt) => {
     evt.preventDefault();
+    const formData = new FormData(evt.target);
+    const currentUrl = formData.get('url');
 
-    watchedState.currentUrl = input.value;
-    button.disabled = true;
-    watchedState.status = 'request';
-
-    const resultValidate = validate(watchedState);
-    resultValidate
-      .then((dataOfValidate) => {
-        const [error] = Object.values(dataOfValidate);
+    validate(watchedState, currentUrl)
+      .then((error) => {
         if (error) {
-          watchedState.isValid = false;
-          throw new Error(error.message);
+          watchedState.validation = false;
+          throw new Error(error);
         } else {
-          watchedState.isValid = true;
+          watchedState.validation = true;
+          watchedState.status = 'request';
         }
       })
-      .then(() => loadeData(watchedState, instance))
+      .then(() => downloadData(watchedState, currentUrl))
+      .then((error) => {
+        if (error.message === 'Network Error') {
+          throw new Error('network_error');
+        } else if (error.message === '[object HTMLUnknownElement]') {
+          throw new Error('resource_does_not_contain_valid_rss');
+        }
+      })
+      .then(() => {
+        if (watchedState.status !== 'update') {
+          watchedState.status = 'success';
+          watchedState.feedback = instance.t('success');
+          watchedState.status = 'update';
+        }
+      })
       .catch((error) => {
         watchedState.feedback = instance.t(`${error.message}`);
         watchedState.status = 'error';
-        button.disabled = false;
-        input.focus();
+        watchedState.status = 'update';
       });
   });
 };

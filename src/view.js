@@ -1,25 +1,26 @@
-import onChange from 'on-change';
-
 const elements = {
   form: document.querySelector('form'),
+  input: document.querySelector('input'),
+  button: document.querySelector('.h-100'),
   fieldOfFeedback: document.querySelector('.feedback'),
-  makeFieldSucces(state) {
-    const [input] = this.form.elements;
-    this.fieldOfFeedback.classList.add('text-success');
-    this.fieldOfFeedback.classList.remove('text-danger');
-    input.classList.add('is-valid');
-    input.classList.remove('is-invalid');
-    this.fieldOfFeedback.textContent = state.feedback;
+  posts: document.querySelector('.posts'),
+  feeds: document.querySelector('.feeds'),
+
+  renderFieldFeedback(state) {
+    if (state.status === 'success') {
+      this.fieldOfFeedback.classList.add('text-success');
+      this.fieldOfFeedback.classList.remove('text-danger');
+      this.input.classList.add('is-valid');
+      this.input.classList.remove('is-invalid');
+      this.fieldOfFeedback.textContent = state.feedback;
+    } else if (state.status === 'error') {
+      this.fieldOfFeedback.classList.add('text-danger');
+      this.input.classList.add('is-invalid');
+      this.fieldOfFeedback.textContent = state.feedback;
+    }
   },
 
-  makeFieldError(state) {
-    const [input] = this.form.elements;
-    this.fieldOfFeedback.classList.add('text-danger');
-    input.classList.add('is-invalid');
-    this.fieldOfFeedback.textContent = state.feedback;
-  },
-
-  makeModal(post) {
+  renderModal(post) {
     const modalDiv = document.querySelector('#modal');
     const title = modalDiv.querySelector('h5');
     title.textContent = post.title;
@@ -29,92 +30,124 @@ const elements = {
     linkInModal.setAttribute('href', post.url);
   },
 
-  makeViewed(post) {
-    const linkPost = document.querySelector(`[data-id="${post.postId}"]`);
-    linkPost.classList.remove('fw-bold');
-    linkPost.classList.add('fw-normal');
-    linkPost.classList.add('link-secondary');
+  markViewed(link) {
+    link.classList.remove('fw-bold');
+    link.classList.add('fw-normal');
+    link.classList.add('link-secondary');
   },
 
-  makePost(post, state) {
-    const ul = document.querySelector('.posts div ul');
-    const li = document.createElement('li');
-    li.classList.add('list-group-item', 'd-flex', 'justify-content-between', 'align-items-start', 'border-0', 'border-end-0');
-    li.innerHTML = `<a href="${post.url}" class="fw-bold" data-id="2" target="_blank" rel="noopener noreferrer">${post.title}</a>
-    <button type="button" class="btn btn-outline-primary btn-sm" data-id="2" data-bs-toggle="modal" data-bs-target="#modal">Просмотр</button>`;
-    ul.append(li);
-    const button = li.querySelector('.btn');
-    button.dataset.id = post.postId;
+  createPost(post, state, instance) {
+    const line = document.createElement('li');
+    line.classList
+      .add('list-group-item', 'd-flex', 'justify-content-between', 'align-items-start', 'border-0', 'border-end-0');
 
+    const link = document.createElement('a');
+    link.classList.add('fw-bold');
+    link.setAttribute('href', post.url);
+    link.setAttribute('data-id', post.postId);
+    link.setAttribute('target', '_blank');
+    link.setAttribute('rel', 'noopener noreferrer');
+    link.textContent = post.title;
+    link.addEventListener('click', () => {
+      state.viewedPosts.push(post.postId);
+    });
+
+    const button = document.createElement('button');
+    button.classList.add('btn', 'btn-outline-primary', 'btn-sm');
+    button.setAttribute('type', 'button');
+    button.setAttribute('data-id', post.postId);
+    button.setAttribute('data-bs-toggle', 'modal');
+    button.setAttribute('data-bs-target', '#modal');
+    button.textContent = instance.t('view');
     button.addEventListener('click', () => {
       state.modal = post.postId;
-      state.viewed.push(post.postId);
+      state.viewedPosts.push(post.postId);
     });
-    const linkPost = li.querySelector('[data-id]');
-    linkPost.dataset.id = post.postId;
-    linkPost.addEventListener('click', () => {
-      state.viewed.push(post.postId);
-    });
+
+    line.append(link);
+    line.append(button);
 
     if (state.modal === post.postId) {
-      elements.makeModal(post);
+      this.renderModal(post);
     }
-    if (state.viewed.includes(post.postId)) {
-      elements.makeViewed(post);
+    if (state.viewedPosts.includes(post.postId)) {
+      this.markViewed(link);
     }
 
-    return li.firstElementChild;
+    return line;
   },
 
-  makeFeed(state) {
-    const ul = document.querySelector('.feeds div ul');
-    const li = document.createElement('li');
-    li.innerHTML = `<li class="list-group-item border-0 border-end-0">
-      <h3 class="h6 m-0">${state.title}</h3>
-      <p class="m-0 small text-black-50">${state.description}</p></li>`;
-    ul.append(li);
+  createFeed(feed) {
+    const line = document.createElement('li');
+    line.classList.add('list-group-item', 'border-0', 'border-end-0');
+
+    const title = document.createElement('h3');
+    title.classList.add('h6', 'm-0');
+    title.textContent = feed.title;
+
+    const description = document.createElement('p');
+    description.classList.add('m-0', 'small', 'text-black-50');
+    description.textContent = feed.description;
+
+    line.append(title);
+    line.append(description);
+
+    return line;
   },
 
-  makeLists(state) {
-    const posts = document.querySelector('.posts');
-    const feeds = document.querySelector('.feeds');
-    posts.innerHTML = `<div class="card border-0"><div class="card-body"><h2 class="card-title h4">Посты</h2></div>
-      <ul class="list-group border-0 rounded-0"></ul></div>`;
-    feeds.innerHTML = `<div class="card border-0">
-    <div class="card-body"><h2 class="card-title h4">Фиды</h2></div>
-    <ul class="list-group border-0 rounded-0">
-    </ul>
-    </div>`;
+  createLists(type, data) {
+    const container = document.createElement('div');
+    container.classList.add('card', 'border-0');
 
-    state.loadedData.posts.forEach((post) => this.makePost(post, state));
-    state.loadedData.feeds.forEach((feed) => elements.makeFeed(feed));
+    const container2 = document.createElement('div');
+    container2.classList.add('card-body');
+
+    const title = document.createElement('h2');
+    title.classList.add('card-title', 'h4');
+    title.textContent = type;
+
+    const list = document.createElement('ul');
+    list.classList.add('list-group', 'border-0', 'rounded-0');
+    list.append(...data);
+
+    container2.append(title);
+    container.append(container2);
+    container.append(list);
+
+    return container;
+  },
+
+  renderLists(state, instance) {
+    const posts = state.loadedData.posts.map((post) => this.createPost(post, state, instance));
+    const feeds = state.loadedData.feeds.map((feed) => this.createFeed(feed));
+
+    const containerForPosts = this.createLists('Посты', posts);
+    const containerForFeeds = this.createLists('Фиды', feeds);
+
+    if (this.posts.firstElementChild) {
+      this.posts.firstElementChild.replaceWith(containerForPosts);
+      this.feeds.firstElementChild.replaceWith(containerForFeeds);
+    } else {
+      this.posts.append(containerForPosts);
+      this.feeds.append(containerForFeeds);
+    }
   },
 };
 
-const render = (state) => {
-  if (state.status === 200) {
-    elements.makeFieldSucces(state);
-  } else if (state.status === 'error') {
-    elements.makeFieldError(state);
+const render = (state, instance) => {
+  if (state.status === 'success' || state.status === 'error') {
+    elements.renderFieldFeedback(state);
+    elements.button.disabled = false;
+    elements.input.disabled = false;
+    elements.form.reset();
+    elements.input.focus();
+  } else if (state.status === 'request') {
+    elements.button.disabled = true;
+    elements.input.disabled = true;
   }
   if (state.loadedData.posts.length > 0) {
-    elements.makeLists(state);
+    elements.renderLists(state, instance);
   }
 };
 
-const state = {
-  currentUrl: '',
-  isValid: null,
-  loadedData: {
-    feeds: [],
-    posts: [],
-  },
-  feedback: '',
-  status: 'filling',
-  modal: false,
-  viewed: [],
-};
-
-const watchedState = onChange(state, (path) => render(watchedState, elements.form, path));
-
-export { elements, watchedState };
+export default render;

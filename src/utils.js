@@ -1,8 +1,12 @@
-export const parser = new DOMParser();
+import _ from 'lodash';
 
-export const fetchProxyUrl = (url) => {
-  const proxyUrl = new URL('https://allorigins.hexlet.app/get');
-  proxyUrl.searchParams.set('disableCache', true);
-  proxyUrl.searchParams.set('url', url);
-  return proxyUrl.toString();
+const proxyUrl = (link) => {
+  const url = new URL('https://allorigins.hexlet.app/get');
+  url.searchParams.set('disableCache', true);
+  url.searchParams.set('url', link);
+  return url.toString();
 };
+
+const isUniq = (array) => array.length === _.union(array).length;
+
+export { proxyUrl, isUniq };
