@@ -1,5 +1,6 @@
 export default {
   translation: {
+    field_invalid: 'Invalid data',
     success: 'RSS has been loaded',
     empty_field: 'Must not be empty',
     link_is_not_valid: 'Link must be a valid URL',

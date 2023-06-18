@@ -1,4 +1,5 @@
 import * as yup from 'yup';
+import { setLocale } from 'yup';
 import i18next from 'i18next';
 import onChange from 'on-change';
 import resources from './locales/index.js';
@@ -6,22 +7,30 @@ import render from './view.js';
 import { isUniq } from './utils.js';
 import downloadData from './handler.js';
 
+setLocale({
+  mixed: {
+    default: 'field_invalid',
+    required: 'empty_field',
+  },
+  string: {
+    url: 'link_is_not_valid',
+  },
+});
+
 const linkValidationCheck = yup.string()
-  .required('empty_field').url('link_is_not_valid');
+  .required().url();
 const checkForDuplicateLinks = yup.array()
   .test('isUniqUrls', 'rss_already_exists', (urls) => isUniq(urls));
 
-const validate = async (state, currentUrl) => {
-  const urls = state.loadedData.feeds.map(({ url }) => url);
-  urls.push(currentUrl);
+const validate = (loadedData, currentUrl) => {
+  const feeds = loadedData.feeds.map(({ url }) => url)
+    .concat([currentUrl]);
 
-  try {
-    await linkValidationCheck.validate(currentUrl, { abortEarly: false });
-    await checkForDuplicateLinks.validate(urls, { abortEarly: false });
-    return null;
-  } catch (error) {
-    return error.message;
-  }
+  return Promise.resolve()
+    .then(() => linkValidationCheck.validate(currentUrl, { abortEarly: false }))
+    .then(() => checkForDuplicateLinks.validate(feeds, { abortEarly: false }))
+    .then(() => null)
+    .catch((error) => error.message);
 };
 
 export default async () => {
@@ -53,7 +62,7 @@ export default async () => {
     const formData = new FormData(evt.target);
     const currentUrl = formData.get('url');
 
-    validate(watchedState, currentUrl)
+    validate(watchedState.loadedData, currentUrl)
       .then((error) => {
         if (error) {
           watchedState.validation = false;
