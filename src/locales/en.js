@@ -8,5 +8,7 @@ export default {
     network_error: 'Network error',
     resource_does_not_contain_valid_rss: 'The resource does not contain valid RSS',
     view: 'view',
+    posts: 'Posts',
+    feeds: 'Feeds',
   },
 };

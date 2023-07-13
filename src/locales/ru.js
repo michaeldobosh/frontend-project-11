@@ -8,5 +8,7 @@ export default {
     network_error: 'Ошибка сети',
     resource_does_not_contain_valid_rss: 'Ресурс не содержит валидный RSS',
     view: 'Просмотр',
+    posts: 'Посты',
+    feeds: 'Фиды',
   },
 };

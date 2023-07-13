@@ -7,13 +7,13 @@ const elements = {
   feeds: document.querySelector('.feeds'),
 
   renderFieldFeedback(state) {
-    if (state.status === 'success') {
+    if (state.downloadStatus === 'success') {
       this.fieldOfFeedback.classList.add('text-success');
       this.fieldOfFeedback.classList.remove('text-danger');
       this.input.classList.add('is-valid');
       this.input.classList.remove('is-invalid');
       this.fieldOfFeedback.textContent = state.feedback;
-    } else if (state.status === 'error') {
+    } else if (state.downloadStatus === 'error') {
       this.fieldOfFeedback.classList.add('text-danger');
       this.input.classList.add('is-invalid');
       this.fieldOfFeedback.textContent = state.feedback;
@@ -37,6 +37,13 @@ const elements = {
   },
 
   createPost(post, state, instance) {
+    const list = document.createElement('ul');
+    list.classList.add('list-group', 'border-0', 'rounded-0');
+    list.addEventListener('click', () => {
+      state.viewedPosts.add(post.postId);
+      state.modal = post.postId;
+    });
+
     const line = document.createElement('li');
     line.classList
       .add('list-group-item', 'd-flex', 'justify-content-between', 'align-items-start', 'border-0', 'border-end-0');
@@ -48,9 +55,6 @@ const elements = {
     link.setAttribute('target', '_blank');
     link.setAttribute('rel', 'noopener noreferrer');
     link.textContent = post.title;
-    link.addEventListener('click', () => {
-      state.viewedPosts.push(post.postId);
-    });
 
     const button = document.createElement('button');
     button.classList.add('btn', 'btn-outline-primary', 'btn-sm');
@@ -59,25 +63,25 @@ const elements = {
     button.setAttribute('data-bs-toggle', 'modal');
     button.setAttribute('data-bs-target', '#modal');
     button.textContent = instance.t('view');
-    button.addEventListener('click', () => {
-      state.modal = post.postId;
-      state.viewedPosts.push(post.postId);
-    });
 
     line.append(link);
     line.append(button);
+    list.append(line);
 
     if (state.modal === post.postId) {
       this.renderModal(post);
     }
-    if (state.viewedPosts.includes(post.postId)) {
+    if (state.viewedPosts.has(post.postId)) {
       this.markViewed(link);
     }
 
-    return line;
+    return list;
   },
 
   createFeed(feed) {
+    const list = document.createElement('ul');
+    list.classList.add('list-group', 'border-0', 'rounded-0');
+
     const line = document.createElement('li');
     line.classList.add('list-group-item', 'border-0', 'border-end-0');
 
@@ -91,11 +95,12 @@ const elements = {
 
     line.append(title);
     line.append(description);
+    list.append(line);
 
-    return line;
+    return list;
   },
 
-  createLists(type, data) {
+  createLists(type) {
     const container = document.createElement('div');
     container.classList.add('card', 'border-0');
 
@@ -106,13 +111,8 @@ const elements = {
     title.classList.add('card-title', 'h4');
     title.textContent = type;
 
-    const list = document.createElement('ul');
-    list.classList.add('list-group', 'border-0', 'rounded-0');
-    list.append(...data);
-
     container2.append(title);
     container.append(container2);
-    container.append(list);
 
     return container;
   },
@@ -121,8 +121,10 @@ const elements = {
     const posts = state.loadedData.posts.map((post) => this.createPost(post, state, instance));
     const feeds = state.loadedData.feeds.map((feed) => this.createFeed(feed));
 
-    const containerForPosts = this.createLists('Посты', posts);
-    const containerForFeeds = this.createLists('Фиды', feeds);
+    const containerForPosts = this.createLists(instance.t('posts'));
+    containerForPosts.append(...posts);
+    const containerForFeeds = this.createLists(instance.t('feeds'));
+    containerForFeeds.append(...feeds);
 
     if (this.posts.firstElementChild) {
       this.posts.firstElementChild.replaceWith(containerForPosts);
@@ -135,19 +137,22 @@ const elements = {
 };
 
 const render = (state, instance) => {
-  if (state.status === 'success' || state.status === 'error') {
-    elements.renderFieldFeedback(state);
+  if (state.formStatus === 'filling') {
     elements.button.disabled = false;
     elements.input.disabled = false;
-    elements.form.reset();
-    elements.input.focus();
-  } else if (state.status === 'request') {
+  } else {
     elements.button.disabled = true;
     elements.input.disabled = true;
+  }
+  if (state.downloadStatus === 'success' || state.downloadStatus === 'error') {
+    elements.renderFieldFeedback(state);
+    elements.form.reset();
+    elements.input.focus();
   }
   if (state.loadedData.posts.length > 0) {
     elements.renderLists(state, instance);
   }
+  console.log(state.viewedPosts);
 };
 
 export default render;

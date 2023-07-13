@@ -9,24 +9,28 @@ const downloadData = (state, currentUrl) => {
   const existingFeeds = feeds.map(({ title }) => title);
   const existingPosts = posts.map(({ title }) => title);
 
-  if (state.validation) existingUrls.push(currentUrl);
-  console.log(state.status);
+  if (state.isValidatedForm) existingUrls.push(currentUrl);
   return Promise.all(_.union(existingUrls).map((url) => axios.get(proxyUrl(url))))
-    .then((responses) => parse(responses))
-    .then((parseredData) => {
-      if (parseredData.name === 'Error') {
-        throw new Error(parseredData.message);
+    .then((responses) => responses.map((data) => parse(data)))
+    .then((parsedData) => {
+      if (parsedData.at(-1).tagName === 'parsererror') {
+        const parserError = new Error(parsedData.at(-1).textContent);
+        parserError.name = 'parsererror';
+        throw parserError;
       }
 
-      const filteredFeeds = parseredData.feeds
-        .filter(({ title }) => !existingFeeds.includes(title))
-        .map((feed) => Object.assign(feed, { url: currentUrl, feedId: _.uniqueId() }));
-      const filteredPosts = parseredData.posts
-        .filter(({ title }) => !existingPosts.includes(title))
-        .map((post) => Object.assign(post, { postId: _.uniqueId() }));
+      parsedData.forEach(({ parsedFeed, parsedPosts }) => {
+        if (!existingFeeds.includes(parsedFeed.title)) {
+          const feed = Object.assign(parsedFeed, { url: currentUrl, feedId: _.uniqueId() });
+          feeds.unshift(feed);
+        }
 
-      feeds.unshift(...filteredFeeds);
-      posts.unshift(...filteredPosts);
+        const filteredPosts = parsedPosts
+          .filter(({ title }) => !existingPosts.includes(title))
+          .map((post) => Object.assign(post, { postId: _.uniqueId() }));
+
+        posts.unshift(...filteredPosts);
+      });
     })
     .then(() => setTimeout(() => downloadData(state, currentUrl), 5000))
     .catch((error) => error);

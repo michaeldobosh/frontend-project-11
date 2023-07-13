@@ -17,20 +17,19 @@ setLocale({
   },
 });
 
-const linkValidationCheck = yup.string()
-  .required().url();
-const checkForDuplicateLinks = yup.array()
-  .test('isUniqUrls', 'rss_already_exists', (urls) => isUniq(urls));
+const validateSchema = yup.object({
+  urls: yup.array()
+    .test('isUniqUrls', 'rss_already_exists', (urls) => isUniq(urls)),
+  currentUrl: yup.string().required().url(),
+});
 
-const validate = (loadedData, currentUrl) => {
-  const feeds = loadedData.feeds.map(({ url }) => url)
-    .concat([currentUrl]);
-
-  return Promise.resolve()
-    .then(() => linkValidationCheck.validate(currentUrl, { abortEarly: false }))
-    .then(() => checkForDuplicateLinks.validate(feeds, { abortEarly: false }))
-    .then(() => null)
-    .catch((error) => error.message);
+const validate = async ({ urls, currentUrl }) => {
+  try {
+    await validateSchema.validate({ urls, currentUrl }, { abortEarly: false });
+    return null;
+  } catch (error) {
+    return error.message;
+  }
 };
 
 export default async () => {
@@ -43,54 +42,58 @@ export default async () => {
   });
 
   const state = {
-    validation: false,
+    isValidatedForm: false,
+    formStatus: 'filling',
+    downloadStatus: null,
     loadedData: {
       feeds: [],
       posts: [],
     },
     feedback: '',
-    status: 'filling',
     modal: false,
-    viewedPosts: [],
+    viewedPosts: new Set([]),
   };
 
   const form = document.querySelector('form');
   const watchedState = onChange(state, (path) => render(watchedState, instance, path));
 
   form.addEventListener('submit', (evt) => {
+    console.log(state.viewedPosts);
     evt.preventDefault();
     const formData = new FormData(evt.target);
     const currentUrl = formData.get('url');
+    const urls = watchedState.loadedData.feeds.map(({ url }) => url)
+      .concat([currentUrl]);
 
-    validate(watchedState.loadedData, currentUrl)
+    validate({ urls, currentUrl })
       .then((error) => {
         if (error) {
-          watchedState.validation = false;
+          watchedState.isValidatedForm = false;
           throw new Error(error);
         } else {
-          watchedState.validation = true;
-          watchedState.status = 'request';
+          watchedState.isValidatedForm = true;
+          watchedState.formStatus = 'sending';
+          watchedState.downloadStatus = 'request';
         }
       })
       .then(() => downloadData(watchedState, currentUrl))
       .then((error) => {
+        watchedState.formStatus = 'filling';
         if (error.message === 'Network Error') {
           throw new Error('network_error');
-        } else if (error.message === '[object HTMLUnknownElement]') {
+        } else if (error.name === 'parsererror') {
           throw new Error('resource_does_not_contain_valid_rss');
         }
-      })
-      .then(() => {
-        if (watchedState.status !== 'update') {
-          watchedState.status = 'success';
+        if (watchedState.downloadStatus !== 'update') {
+          watchedState.downloadStatus = 'success';
           watchedState.feedback = instance.t('success');
-          watchedState.status = 'update';
+          watchedState.downloadStatus = 'update';
         }
       })
       .catch((error) => {
         watchedState.feedback = instance.t(`${error.message}`);
-        watchedState.status = 'error';
-        watchedState.status = 'update';
+        watchedState.downloadStatus = 'error';
+        watchedState.downloadStatus = 'update';
       });
   });
 };
