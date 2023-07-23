@@ -137,22 +137,23 @@ const elements = {
 };
 
 const render = (state, instance) => {
-  if (state.formStatus === 'filling') {
-    elements.button.disabled = false;
-    elements.input.disabled = false;
-  } else {
+  if (state.formStatus === 'sending') {
     elements.button.disabled = true;
     elements.input.disabled = true;
+  } else {
+    elements.button.disabled = false;
+    elements.input.disabled = false;
   }
-  if (state.downloadStatus === 'success' || state.downloadStatus === 'error') {
-    elements.renderFieldFeedback(state);
+  if (state.downloadStatus === 'loading' && state.formStatus === 'filling') {
     elements.form.reset();
     elements.input.focus();
+  }
+  if (state.formStatus === 'filling') {
+    elements.renderFieldFeedback(state);
   }
   if (state.loadedData.posts.length > 0) {
     elements.renderLists(state, instance);
   }
-  console.log(state.viewedPosts);
 };
 
 export default render;
