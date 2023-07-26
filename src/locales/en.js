@@ -6,6 +6,7 @@ export default {
     link_is_not_valid: 'Link must be a valid URL',
     rss_already_exists: 'RSS already exists',
     ECONNABORTED: 'Network error',
+    ERR_NETWORK: 'Network error',
     parser_error: 'The resource does not contain valid RSS',
     view: 'view',
     posts: 'Posts',
