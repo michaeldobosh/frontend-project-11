@@ -2,9 +2,13 @@ const parse = ({ data }) => {
   const parser = new DOMParser();
   const rss = parser
     .parseFromString(data.contents, 'application/xml');
-  const error = rss.querySelector('parsererror');
-  if (error) {
-    return `${error.tagName}: ${error.textContent}`;
+  const parseError = rss.querySelector('parsererror');
+  if (parseError) {
+    const error = new Error(parseError.textContent);
+    error.isParsingError = true;
+    error.data = data;
+    error.code = 'parser_error';
+    throw error;
   }
 
   const feedTitle = rss.querySelector('title');

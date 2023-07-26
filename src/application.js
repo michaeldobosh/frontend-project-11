@@ -4,7 +4,7 @@ import i18next from 'i18next';
 import onChange from 'on-change';
 import resources from './locales/index.js';
 import render from './view.js';
-import downloadData from './download.js';
+import { dataRequest, dataUpdate } from './aggregator.js';
 
 setLocale({
   mixed: {
@@ -26,7 +26,7 @@ const validate = async ({ urls, currentUrl }) => {
     await validateUrl(urls).validate({ currentUrl }, { abortEarly: false });
     return null;
   } catch (error) {
-    return error.message;
+    return error;
   }
 };
 
@@ -40,13 +40,10 @@ export default async () => {
   });
 
   const state = {
-    isValidationForm: false,
+    feeds: [],
+    posts: [],
     formStatus: 'filling',
     downloadStatus: 'notLoaded',
-    loadedData: {
-      feeds: [],
-      posts: [],
-    },
     feedback: '',
     modal: false,
     viewedPosts: new Set([]),
@@ -59,38 +56,34 @@ export default async () => {
     evt.preventDefault();
     const formData = new FormData(evt.target);
     const currentUrl = formData.get('url');
-    const urls = watchedState.loadedData.feeds.map(({ url }) => url);
+    const urls = watchedState.feeds.map(({ url }) => url);
     watchedState.formStatus = 'sending';
 
     validate({ urls, currentUrl })
       .then((error) => {
         if (error) {
-          watchedState.formStatus = 'filling';
-          throw new Error(error);
+          const validationError = new Error(error);
+          validationError.code = error.message;
+          throw validationError;
         }
       })
       .then(() => {
         watchedState.downloadStatus = 'loading';
-        return downloadData(watchedState, currentUrl);
+        return dataRequest(watchedState, currentUrl);
       })
-      .then((result) => {
-        watchedState.formStatus = 'filling';
-        let error;
-        if (result) {
-          error = `${result.message}`;
-        }
-        if (error === 'Network Error') {
-          throw new Error('network_error');
-        }
-        if (error.substring(0, 11) === 'parsererror') {
-          throw new Error('resource_does_not_contain_valid_rss');
-        }
+      .then(() => {
+        watchedState.formStatus = 'sent';
         watchedState.downloadStatus = 'success';
         watchedState.feedback = instance.t('success');
       })
+      .then(() => dataUpdate(watchedState))
+      .then(() => {
+        watchedState.downloadStatus = 'update';
+      })
       .catch((error) => {
+        watchedState.formStatus = 'sent';
         watchedState.downloadStatus = 'error';
-        watchedState.feedback = instance.t(`${error.message}`);
+        watchedState.feedback = instance.t(error.code);
       });
   });
 };

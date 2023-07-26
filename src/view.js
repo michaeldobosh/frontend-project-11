@@ -6,17 +6,17 @@ const elements = {
   posts: document.querySelector('.posts'),
   feeds: document.querySelector('.feeds'),
 
-  renderFieldFeedback(state) {
-    if (state.downloadStatus === 'success') {
+  renderFieldFeedback({ downloadStatus, feedback }) {
+    if (downloadStatus === 'success') {
       this.fieldOfFeedback.classList.add('text-success');
       this.fieldOfFeedback.classList.remove('text-danger');
       this.input.classList.add('is-valid');
       this.input.classList.remove('is-invalid');
-      this.fieldOfFeedback.textContent = state.feedback;
-    } else if (state.downloadStatus === 'error') {
+      this.fieldOfFeedback.textContent = feedback;
+    } else if (downloadStatus === 'error') {
       this.fieldOfFeedback.classList.add('text-danger');
       this.input.classList.add('is-invalid');
-      this.fieldOfFeedback.textContent = state.feedback;
+      this.fieldOfFeedback.textContent = feedback;
     }
   },
 
@@ -118,8 +118,8 @@ const elements = {
   },
 
   renderLists(state, instance) {
-    const posts = state.loadedData.posts.map((post) => this.createPost(post, state, instance));
-    const feeds = state.loadedData.feeds.map((feed) => this.createFeed(feed));
+    const posts = state.posts.map((post) => this.createPost(post, state, instance));
+    const feeds = state.feeds.map((feed) => this.createFeed(feed));
 
     const containerForPosts = this.createLists(instance.t('posts'));
     containerForPosts.append(...posts);
@@ -137,21 +137,22 @@ const elements = {
 };
 
 const render = (state, instance) => {
-  if (state.formStatus === 'sending') {
-    elements.button.disabled = true;
-    elements.input.disabled = true;
-  } else {
-    elements.button.disabled = false;
-    elements.input.disabled = false;
+  const { formStatus, downloadStatus, posts } = state;
+  const { button, input, form } = elements;
+  if (formStatus === 'sending') {
+    button.disabled = true;
+    input.disabled = true;
   }
-  if (state.downloadStatus === 'loading' && state.formStatus === 'filling') {
-    elements.form.reset();
-    elements.input.focus();
-  }
-  if (state.formStatus === 'filling') {
+  if (downloadStatus === 'success' || downloadStatus === 'error') {
+    button.disabled = false;
+    input.disabled = false;
     elements.renderFieldFeedback(state);
   }
-  if (state.loadedData.posts.length > 0) {
+  if (downloadStatus === 'success') {
+    form.reset();
+    elements.input.focus();
+  }
+  if (posts.length) {
     elements.renderLists(state, instance);
   }
 };
