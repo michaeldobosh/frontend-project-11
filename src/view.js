@@ -39,20 +39,32 @@ const elements = {
     }
   },
 
-  renderModalWindow(post) {
-    const modalDiv = document.querySelector('#modal');
-    const title = modalDiv.querySelector('h5');
-    title.textContent = post.title;
-    const description = modalDiv.querySelector('.text-break');
-    description.textContent = post.description;
-    const linkInModal = modalDiv.querySelector('.btn-primary');
-    linkInModal.setAttribute('href', post.url);
+  renderModalWindow(state) {
+    const [openedPost] = state.posts.filter(({ postId }) => postId === state.modal);
+    if (openedPost) {
+      const modalDiv = document.querySelector('#modal');
+      const title = modalDiv.querySelector('h5');
+      title.textContent = openedPost.title;
+      const description = modalDiv.querySelector('.text-break');
+      description.textContent = openedPost.description;
+      const linkInModal = modalDiv.querySelector('.btn-primary');
+      linkInModal.setAttribute('href', openedPost.url);
+    }
   },
 
-  markViewedLink(link) {
-    link.classList.remove('fw-bold');
-    link.classList.add('fw-normal');
-    link.classList.add('link-secondary');
+  markViewedLink(state) {
+    const existingPosts = document.querySelector('.posts ul');
+    if (existingPosts) {
+      [...existingPosts.children]
+        .filter((li) => state.viewedPosts.has(li.firstElementChild
+          .getAttribute('data-id')))
+        .forEach((li) => {
+          const link = li.firstElementChild;
+          link.classList.remove('fw-bold');
+          link.classList.add('fw-normal');
+          link.classList.add('link-secondary');
+        });
+    }
   },
 
   renderPost(post, instance) {
@@ -102,23 +114,26 @@ const elements = {
 
   renderLists(state, instance) {
     const containerForPosts = document.querySelector('.posts');
-    const innerPostContainer = this.createElementsContainer(instance.t('posts'));
-    const postList = innerPostContainer.querySelector('ul');
-    const posts = state.posts.map((post) => this.renderPost(post, instance));
-    postList.append(...posts);
-    containerForPosts.append(innerPostContainer);
     containerForPosts.addEventListener('click', (evt) => {
       const visitedPostId = evt.target.getAttribute('data-id');
       state.viewedPosts.add(visitedPostId);
       state.modal = visitedPostId;
     });
+    const innerPostContainer = this.createElementsContainer(instance.t('posts'));
+    const postList = innerPostContainer.querySelector('ul');
+    const posts = state.posts.map((post) => this.renderPost(post, instance));
+    postList.append(...posts);
 
     const containerForFeeds = document.querySelector('.feeds');
     const innerFeedContainer = this.createElementsContainer(instance.t('feeds'));
     const feedList = innerFeedContainer.querySelector('ul');
     const feeds = state.feeds.map((feed) => this.renderFeed(feed));
     feedList.append(...feeds);
-    containerForFeeds.append(innerFeedContainer);
+
+    if (posts.length) {
+      containerForPosts.append(innerPostContainer);
+      containerForFeeds.append(innerFeedContainer);
+    }
   },
 
   renderNewElementsList(state, instance) {
@@ -141,7 +156,7 @@ const elements = {
 };
 
 const render = (state, instance) => {
-  const { formStatus, downloadStatus, posts } = state;
+  const { formStatus, downloadStatus } = state;
   const { button, input, form } = elements;
 
   if (formStatus === 'sending') {
@@ -160,25 +175,13 @@ const render = (state, instance) => {
   }
 
   elements.renderQueryResult(state);
+  elements.renderModalWindow(state);
+  elements.markViewedLink(state);
 
-  if (posts.length) {
-    try {
-      elements.renderNewElementsList(state, instance);
-    } catch (e) {
-      elements.renderLists(state, instance);
-    }
-  }
-
-  const existingPosts = document.querySelector('.posts ul');
-  if (existingPosts) {
-    [...existingPosts.children]
-      .filter((li) => state.viewedPosts.has(li.firstElementChild.getAttribute('data-id')))
-      .forEach((li) => elements.markViewedLink(li.firstElementChild));
-  }
-
-  const [openedPost] = state.posts.filter(({ postId }) => postId === state.modal);
-  if (openedPost) {
-    elements.renderModalWindow(openedPost);
+  try {
+    elements.renderNewElementsList(state, instance);
+  } catch (e) {
+    elements.renderLists(state, instance);
   }
 };
 
