@@ -45,12 +45,14 @@ export default async () => {
     formStatus: 'filling',
     downloadStatus: 'notLoaded',
     feedback: '',
-    modal: false,
-    viewedPosts: new Set([]),
+    modal: null,
+    viewedPosts: new Set(),
   };
 
   const form = document.querySelector('form');
   const watchedState = onChange(state, (path) => render(watchedState, instance, path));
+  await dataUpdate(watchedState);
+  watchedState.downloadStatus = 'updating';
 
   form.addEventListener('submit', (evt) => {
     evt.preventDefault();
@@ -72,18 +74,16 @@ export default async () => {
         return dataRequest(watchedState, currentUrl);
       })
       .then(() => {
-        watchedState.formStatus = 'sent';
         watchedState.downloadStatus = 'success';
         watchedState.feedback = instance.t('success');
       })
-      .then(() => dataUpdate(watchedState))
-      .then(() => {
-        watchedState.downloadStatus = 'update';
-      })
       .catch((error) => {
-        watchedState.formStatus = 'sent';
         watchedState.downloadStatus = 'error';
         watchedState.feedback = instance.t(error.code);
+      })
+      .then(() => {
+        watchedState.formStatus = 'sent';
+        watchedState.downloadStatus = 'updating';
       });
   });
 };

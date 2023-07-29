@@ -43,9 +43,7 @@ const dataUpdate = (state) => {
     .then((responses) => responses.map((data) => parse(data)))
     .then((data) => addDataToState(state, data))
     .then(() => setTimeout(() => dataUpdate(state), updadeInterval))
-    .catch((error) => {
-      throw error;
-    });
+    .catch((error) => error);
 };
 
 export { dataRequest, dataUpdate };
