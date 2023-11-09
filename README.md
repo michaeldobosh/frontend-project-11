@@ -12,7 +12,7 @@
 
 1.Клонируйте репозиторий с помощью следующей команды:
 
-```git clone https://github.com/semenChe/frontend-project-11```
+```git clone https://github.com/michaeldobosh/frontend-project-11```
 
 2.Установите программу чтения RSS, используя следующие команды:
 
